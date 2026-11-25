@@ -6,7 +6,8 @@
 # as published by the Free Software Foundation.
 #
 # Generates src/unicode_tables.h from Python's unicodedata:
-#   - word character ranges: general categories L* (letters) and Nd (digits)
+#   - word character ranges: general categories L* (letters), Mn and Mc
+#     (combining marks) except variation selectors, and Nd (digits)
 #   - simple one-to-one lowercase mappings, as runs of (lo, hi, stride, delta)
 # Usage: python3 tools/gen_unicode_tables.py > src/unicode_tables.h
 
@@ -20,13 +21,18 @@ def is_surrogate(cp):
     return 0xD800 <= cp <= 0xDFFF
 
 
+def is_variation_selector(cp):
+    return 0xFE00 <= cp <= 0xFE0F or 0xE0100 <= cp <= 0xE01EF
+
+
 def word_ranges():
     ranges = []
     for cp in range(MAX_CP + 1):
         if is_surrogate(cp):
             continue
         cat = unicodedata.category(chr(cp))
-        if cat.startswith("L") or cat == "Nd":
+        if cat[0] == "L" or (cat in ("Mn", "Mc", "Nd")
+                             and not is_variation_selector(cp)):
             if ranges and ranges[-1][1] == cp - 1:
                 ranges[-1][1] = cp
             else:
@@ -92,7 +98,8 @@ def main():
     out.write("#include <cstdint>\n\n")
     out.write("struct CpRange { uint32_t lo, hi; };\n")
     out.write("struct LowerRun { uint32_t lo, hi, stride; int32_t delta; };\n\n")
-    out.write("// Code points in general categories L* and Nd, sorted.\n")
+    out.write("// Code points in general categories L*, Mn, Mc (except variation selectors)\n"
+              "// and Nd, sorted.\n")
     out.write("static const CpRange kWordRanges[] = {\n")
     for lo, hi in words:
         out.write(f"  {{0x{lo:04X}, 0x{hi:04X}}},\n")

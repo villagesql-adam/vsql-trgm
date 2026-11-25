@@ -56,6 +56,39 @@ SELECT vsql_trgm.trgm_similarity('MySQL数据库', 'mysql数据库');
 SELECT vsql_trgm.trgm_strict_word_similarity('数据', 'SQL 数据 库');
 
 --echo #
+--echo # Combining marks are word characters: Thai, Hindi and NFD José stay whole
+--echo #
+SELECT vsql_trgm.trgm_show('สวัสดี');
+SELECT vsql_trgm.trgm_show('हिन्दी');
+SELECT vsql_trgm.trgm_show(CONVERT(X'4A6F7365CC81' USING utf8mb4));
+
+--echo #
+--echo # Variation selectors and enclosing marks separate words
+--echo #
+SELECT vsql_trgm.trgm_show('❤️') AS heart_vs16;
+SELECT vsql_trgm.trgm_similarity('❤️', '☀️') AS heart_sun_vs16;
+SELECT vsql_trgm.trgm_show('1️⃣') AS keycap_one;
+
+--echo #
+--echo # 4-byte characters: U+10400 lowercases to U+10428; U+20000 is a CJK ideograph
+--echo #
+SELECT vsql_trgm.trgm_show('𐐀𐐁') AS show_deseret;
+SELECT vsql_trgm.trgm_similarity('𐐀𐐁', '𐐨𐐩') AS sim_deseret;
+SELECT vsql_trgm.trgm_show('𠀀𠀁') AS show_ext_b;
+
+--echo #
+--echo # Case pairs at stride 2 (Latin Extended-A)
+--echo #
+SELECT vsql_trgm.trgm_show('ĀĂĄ');
+SELECT vsql_trgm.trgm_similarity('ĀĂĄ', 'āăą');
+
+--echo #
+--echo # Simple lowercase: Σ becomes σ, not final ς; İ (U+0130) becomes i
+--echo #
+SELECT vsql_trgm.trgm_show('ΟΔΟΣ');
+SELECT vsql_trgm.trgm_show('İx');
+
+--echo #
 --echo # Malformed UTF-8: the server rejects the argument before the function runs
 --echo #
 --error 3854

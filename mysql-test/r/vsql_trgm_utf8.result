@@ -95,6 +95,60 @@ SELECT vsql_trgm.trgm_strict_word_similarity('数据', 'SQL 数据 库');
 vsql_trgm.trgm_strict_word_similarity('数据', 'SQL 数据 库')
 1
 #
+# Combining marks are word characters: Thai, Hindi and NFD José stay whole
+#
+SELECT vsql_trgm.trgm_show('สวัสดี');
+vsql_trgm.trgm_show('สวัสดี')
+["  ส"," สว","ดี ","วัส","สดี","สวั","ัสด"]
+SELECT vsql_trgm.trgm_show('हिन्दी');
+vsql_trgm.trgm_show('हिन्दी')
+["  ह"," हि","दी ","न्द","हिन","िन्","्दी"]
+SELECT vsql_trgm.trgm_show(CONVERT(X'4A6F7365CC81' USING utf8mb4));
+vsql_trgm.trgm_show(CONVERT(X'4A6F7365CC81' USING utf8mb4))
+["  j"," jo","é ","jos","ose","sé"]
+#
+# Variation selectors and enclosing marks separate words
+#
+SELECT vsql_trgm.trgm_show('❤️') AS heart_vs16;
+heart_vs16
+[]
+SELECT vsql_trgm.trgm_similarity('❤️', '☀️') AS heart_sun_vs16;
+heart_sun_vs16
+0
+SELECT vsql_trgm.trgm_show('1️⃣') AS keycap_one;
+keycap_one
+["  1"," 1 "]
+#
+# 4-byte characters: U+10400 lowercases to U+10428; U+20000 is a CJK ideograph
+#
+SELECT vsql_trgm.trgm_show('𐐀𐐁') AS show_deseret;
+show_deseret
+["  𐐨"," 𐐨𐐩","𐐨𐐩 "]
+SELECT vsql_trgm.trgm_similarity('𐐀𐐁', '𐐨𐐩') AS sim_deseret;
+sim_deseret
+1
+SELECT vsql_trgm.trgm_show('𠀀𠀁') AS show_ext_b;
+show_ext_b
+["  𠀀"," 𠀀𠀁","𠀀𠀁 "]
+#
+# Case pairs at stride 2 (Latin Extended-A)
+#
+SELECT vsql_trgm.trgm_show('ĀĂĄ');
+vsql_trgm.trgm_show('ĀĂĄ')
+["  ā"," āă","āăą","ăą "]
+SELECT vsql_trgm.trgm_similarity('ĀĂĄ', 'āăą');
+vsql_trgm.trgm_similarity('ĀĂĄ', 'āăą')
+1
+#
+# Simple lowercase: Σ becomes σ, not final ς; İ (U+0130) becomes i
+#
+SELECT vsql_trgm.trgm_show('ΟΔΟΣ');
+vsql_trgm.trgm_show('ΟΔΟΣ')
+["  ο"," οδ","δοσ","οδο","οσ "]
+SELECT vsql_trgm.trgm_show('İx');
+vsql_trgm.trgm_show('İx')
+["  i"," ix","ix "]
+#
 # Malformed UTF-8: the server rejects the argument before the function runs
 #
 SELECT vsql_trgm.trgm_show(UNHEX('6162FF6364'));

@@ -55,8 +55,9 @@ static size_t utf8_char_len(std::string_view s, size_t i, char32_t* cp) {
   return len;
 }
 
-// A word character is a letter (general category L*) or a decimal digit (Nd),
-// matching pg_trgm's alphanumeric test.
+// A word character is a letter (general category L*), a combining mark (Mn,
+// Mc) other than a variation selector, or a decimal digit (Nd). Marks keep
+// Thai, Devanagari and decomposed (NFD) words whole.
 static bool is_word_char(char32_t cp) {
   auto it = std::upper_bound(
       std::begin(kWordRanges), std::end(kWordRanges), cp,
@@ -248,7 +249,7 @@ void trgm_show_impl(StringArg arg, StringResult result) {
       if (!first) out += ',';
       first = false;
       out += '"';
-      // Trigrams hold only spaces and well-formed UTF-8 letters and digits
+      // Trigrams hold only spaces and well-formed UTF-8 word characters
       // (is_word_char), so no character needs a JSON escape.
       out += t;
       out += '"';
